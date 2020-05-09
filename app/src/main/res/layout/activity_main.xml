@@ -4,15 +4,69 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/colorWhite"
     tools:context=".MainActivity">
 
     <TextView
+        android:id="@+id/tvStepDocumentVerification"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginTop="24dp"
+        android:text="@string/step_one"
+        android:textColor="@color/colorTextBody"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:id="@+id/ivChooseDocument"
+        android:layout_width="0dp"
+        android:layout_height="312dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/view_camera_border"
+        app:layout_constraintBottom_toTopOf="@+id/btnContinue"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvStepDocumentVerification" />
+
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/iivChooseDocument"
+        android:layout_width="124dp"
+        android:layout_height="124dp"
+        android:layout_marginTop="48dp"
+        android:src="@drawable/camera"
+        app:layout_constraintEnd_toEndOf="@+id/ivChooseDocument"
+        app:layout_constraintStart_toStartOf="@+id/ivChooseDocument"
+        app:layout_constraintTop_toTopOf="@+id/ivChooseDocument" />
+
+    <TextView
+        android:id="@+id/tvChooseDocument"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dp"
+        android:text="@string/take_photo"
+        android:textColor="@color/colorAccent"
+        app:layout_constraintEnd_toEndOf="@+id/iivChooseDocument"
+        app:layout_constraintStart_toStartOf="@+id/iivChooseDocument"
+        app:layout_constraintTop_toBottomOf="@+id/iivChooseDocument" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnContinue"
+        android:layout_width="0dp"
+        android:layout_height="55dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="16dp"
+        android:backgroundTint="@color/colorAccent"
+        android:text="@string/upload"
+        android:textAllCaps="false"
+        android:textColor="@color/colorWhite"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
