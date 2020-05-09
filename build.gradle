@@ -13,6 +13,7 @@ buildscript {
             'dagger'           : '2.25.2',
             'coroutine'        : '1.3.2',
             'gson'             : '2.8.6',
+            'material'         : '1.2.0-alpha06',
 
             /**Lifecycle*/
             'lifecycle'        : '2.2.0',
