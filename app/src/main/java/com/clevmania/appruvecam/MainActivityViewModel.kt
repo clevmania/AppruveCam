@@ -1,5 +1,6 @@
 package com.clevmania.appruvecam
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -33,6 +34,7 @@ class MainActivityViewModel(private val documentDataSource: DocumentDataSource):
                 }
 
             }catch (e : Exception){
+                Log.d("uploadDocError",e.message)
                 _error.value = UIEvent(e.localizedMessage)
             }finally {
                 _progress.value = UIEvent(false)
