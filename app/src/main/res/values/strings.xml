@@ -3,4 +3,6 @@
     <string name="take_photo">Choose Document</string>
     <string name="step_one">Verify Document</string>
     <string name="upload">Upload</string>
+    <string name="remove_photo">Remove Photo</string>
+    <string name="uploadingDocs">Uploading...</string>
 </resources>

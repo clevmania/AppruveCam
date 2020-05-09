@@ -79,4 +79,7 @@ dependencies {
 
     implementation "com.google.android.material:material:${versions.material}"
 
+    /** image cropper*/
+    implementation "com.github.yalantis:ucrop:${versions.yalantis}"
+
 }
