@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         updateChanges(viewModel)
 
         ivChooseDocument.setOnClickListener { checkStoragePermission() }
+        tvChooseDocument.setOnClickListener { checkStoragePermission() }
 
         captureAndUploadSelfIeImage()
     }
