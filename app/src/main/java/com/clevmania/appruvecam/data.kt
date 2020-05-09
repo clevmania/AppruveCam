@@ -8,7 +8,6 @@ import retrofit2.http.*
  * for AppruveCam
  */
 interface UploadDocumentService {
-    //https://stage.appruve.co/v1/verifications/test/file_upload
     @POST("v1/verifications/test/file_upload")
     suspend fun uploadDocument(
         @Body requestBody: RequestBody

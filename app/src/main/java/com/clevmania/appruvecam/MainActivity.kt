@@ -259,7 +259,7 @@ class MainActivity : AppCompatActivity() {
 
             uploadedDocument.observe(this@MainActivity, Observer {uiEvent ->
                 uiEvent.getContentIfNotHandled()?.let {
-                    Snackbar.make(cvRootLayout, it, Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(cvRootLayout, "File Upload Successful", Snackbar.LENGTH_SHORT).show()
                 }
             })
         }

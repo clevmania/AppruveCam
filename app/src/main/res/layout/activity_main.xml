@@ -15,8 +15,9 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="@string/step_one"
-        android:textColor="@color/colorTextBody"
-        android:textSize="16sp"
+        android:textColor="@color/colorAccent"
+        android:textSize="18sp"
+        style="@style/TextAppearance.AppCompat.Headline"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
