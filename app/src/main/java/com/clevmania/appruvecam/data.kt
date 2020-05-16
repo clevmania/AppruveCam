@@ -11,15 +11,15 @@ interface UploadDocumentService {
     @POST("v1/verifications/test/file_upload")
     suspend fun uploadDocument(
         @Body requestBody: RequestBody
-    ): String
+    ): Unit
 }
 
 interface DocumentDataSource {
-    suspend fun uploadDocument(img: RequestBody): String
+    suspend fun uploadDocument(img: RequestBody): Unit
 }
 
 class DocumentRepository (private val apiService: UploadDocumentService) : DocumentDataSource {
-    override suspend fun uploadDocument(img: RequestBody): String {
+    override suspend fun uploadDocument(img: RequestBody): Unit {
         return apiService.uploadDocument(requestBody = img)
     }
 

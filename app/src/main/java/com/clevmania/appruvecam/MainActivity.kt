@@ -12,13 +12,17 @@ import android.os.Bundle
 import android.os.Environment
 import androidx.lifecycle.Observer
 import android.provider.MediaStore
+import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toFile
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.snackbar.Snackbar
 import com.yalantis.ucrop.UCrop
+import dagger.android.AndroidInjector
+import dagger.android.DispatchingAndroidInjector
+import dagger.android.HasAndroidInjector
 import kotlinx.android.synthetic.main.activity_main.*
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -27,31 +31,26 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), HasAndroidInjector {
     private var cameraUri: Uri? = null
     private val cameraRequestCode = 1001
     private val storageRequestCode = 1002
     private lateinit var currentPhotoPath: String
     private var croppedImgPath: String? = null
 
-    private lateinit var viewModel : MainActivityViewModel
-    private lateinit var viewModelFactory: ViewModelFactory
+    @Inject
+    lateinit var androidInjector: DispatchingAndroidInjector<Any>
+
+    @Inject
+    lateinit var viewModelProviderFactory: ViewModelProvider.Factory
+
+    private val viewModel by viewModels<MainActivityViewModel> { viewModelProviderFactory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        /**
-         * This shouldn't be so, given enough time,
-         * i'd have used dependency injection
-         * */
-        val apiService = AppruveApiService()
-        val dataSrc = DocumentRepository(apiService)
-
-        viewModelFactory = ViewModelFactory(dataSrc)
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
-            .get(MainActivityViewModel::class.java)
 
         updateChanges(viewModel)
 
@@ -276,5 +275,9 @@ class MainActivity : AppCompatActivity() {
                 tv_status.makeGone()
             }
         }
+    }
+
+    override fun androidInjector(): AndroidInjector<Any> {
+        return androidInjector
     }
 }

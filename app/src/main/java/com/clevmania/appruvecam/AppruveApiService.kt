@@ -10,7 +10,7 @@ const val baseUrl = "https://stage.appruve.co/"
 
 interface AppruveApiService {
     companion object {
-        operator fun invoke(): UploadDocumentService {
+        operator fun invoke(): Retrofit {
             val logging = HttpLoggingInterceptor()
             logging.setLevel(HttpLoggingInterceptor.Level.BODY)
 
@@ -25,7 +25,7 @@ interface AppruveApiService {
                 .baseUrl(baseUrl)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
-                .create(UploadDocumentService::class.java)
+//                .create(UploadDocumentService::class.java)
         }
     }
 }

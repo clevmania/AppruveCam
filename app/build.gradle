@@ -82,4 +82,6 @@ dependencies {
     /** image cropper*/
     implementation "com.github.yalantis:ucrop:${versions.yalantis}"
 
+    implementation "androidx.activity:activity-ktx:1.1.0"
+
 }
