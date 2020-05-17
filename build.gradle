@@ -16,8 +16,10 @@ buildscript {
             'gson'             : '2.8.6',
             'material'         : '1.2.0-alpha06',
 
-            /**Lifecycle*/
+            /**JetPack*/
             'lifecycle'        : '2.2.0',
+            'camerax'          : '1.0.0-beta03',
+            'cameraView'       : '1.0.0-alpha10'
     ]
 
     repositories {
