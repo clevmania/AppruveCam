@@ -1,5 +1,6 @@
 package com.clevmania.appruvecam
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,7 +13,11 @@ import android.os.Bundle
 import android.os.Environment
 import androidx.lifecycle.Observer
 import android.provider.MediaStore
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -31,14 +36,20 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import javax.inject.Inject
 
 class MainActivity : AppCompatActivity(), HasAndroidInjector {
     private var cameraUri: Uri? = null
-    private val cameraRequestCode = 1001
-    private val storageRequestCode = 1002
-    private lateinit var currentPhotoPath: String
     private var croppedImgPath: String? = null
+
+    private var preview: Preview? = null
+    private var imageCapture : ImageCapture? = null
+    private var camera : Camera? = null
+
+    private lateinit var outputDirectory : File
+    private lateinit var cameraExecutor : ExecutorService
 
     @Inject
     lateinit var androidInjector: DispatchingAndroidInjector<Any>
@@ -52,18 +63,32 @@ class MainActivity : AppCompatActivity(), HasAndroidInjector {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        outputDirectory = getOutputDirectory()
+        cameraExecutor = Executors.newSingleThreadExecutor()
+
         updateChanges(viewModel)
 
-        ivChooseDocument.setOnClickListener { checkStoragePermission() }
-        tvChooseDocument.setOnClickListener { checkStoragePermission() }
+        ivChooseDocument.setOnClickListener { checkPermission() }
+        tvChooseDocument.setOnClickListener { clearImageOrLaunchImageCaptureIntent() }
+        ivCaptureImage.setOnClickListener { takePhoto() }
 
         captureAndUploadSelfIeImage()
+    }
+
+    private fun checkPermission(){
+        if (allPermissionsGranted()){
+            startCamera()
+        }else{
+            ActivityCompat.requestPermissions(
+                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
+            )
+        }
     }
 
     private fun captureAndUploadSelfIeImage() {
         btnContinue.setOnClickListener {
             if (croppedImgPath == null) {
-                Snackbar.make(cvRootLayout, "Take a passport photograph", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(cvRootLayout, "Take Document Photograph", Snackbar.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -98,110 +123,119 @@ class MainActivity : AppCompatActivity(), HasAndroidInjector {
         }
     }
 
-    private fun checkStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.CAMERA
-                )
-                == PackageManager.PERMISSION_DENIED ||
-                ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_DENIED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(
-                        android.Manifest.permission.CAMERA,
-                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    ), storageRequestCode
-                )
-            } else {
-                // permission granted, launch camera
-                clearImageOrLaunchImageCaptureIntent()
-
-            }
-        } else {
-            // runtime permission not needed, so show camera
-            clearImageOrLaunchImageCaptureIntent()
-        }
-    }
-
     private fun clearImageOrLaunchImageCaptureIntent() {
         if (tvChooseDocument.text == getString(R.string.remove_photo)) {
-            iivChooseDocument.setImageResource(0)
-            croppedImgPath = null
-            iivChooseDocument.setImageDrawable(
-                ContextCompat.getDrawable(
-                    this, R.drawable.camera
-                )
-            )
-            tvChooseDocument.let {
-                it.text = getString(R.string.take_photo)
-                it.setTextColor(ContextCompat.getColor(this, R.color.colorAccent))
+            iivChooseDocument.apply {
+                setImageResource(0)
+                croppedImgPath = null
+                setImageDrawable(ContextCompat.getDrawable(this.context, R.drawable.camera))
             }
-        } else {
-            dispatchTakePictureIntent()
-        }
-    }
 
-    private fun dispatchTakePictureIntent() {
-        Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
-            // Ensure that there's a camera activity to handle the intent
-            takePictureIntent.resolveActivity(packageManager)?.also {
-                // Create the File where the photo should go
-                val photoFile: File? = try {
-                    createImageFile()
-                } catch (ex: IOException) {
-                    // Error occurred while creating the File
-                    null
-                }
-                // Continue only if the File was successfully created
-                photoFile?.also {
-                    /*val photoURI: Uri*/ cameraUri = FileProvider.getUriForFile(
-                    this,
-                    "${packageName}.fileProvider",
-                    it
-                )
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri)
-                    startActivityForResult(takePictureIntent, cameraRequestCode)
-                }
+            tvChooseDocument.apply {
+                text = getString(R.string.take_photo)
+                setTextColor(ContextCompat.getColor(this.context, R.color.colorAccent))
             }
         }
     }
 
-    @Throws(IOException::class)
-    private fun createImageFile(): File {
-        val timeStamp: String =
-            SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        return File.createTempFile(
-            "JPEG_${timeStamp}_",
-            ".jpg",
-            storageDir
-        ).apply {
-            // Save a file: path for use with ACTION_VIEW intents
-            currentPhotoPath = absolutePath
+    private fun startCamera(){
+        grpVerifyDocument.makeGone()
+        grpImageCapture.makeVisible()
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener(Runnable {
+            val cameraProvider : ProcessCameraProvider = cameraProviderFuture.get()
+
+            preview = Preview.Builder().build()
+
+            imageCapture = ImageCapture.Builder()
+                .apply {
+                    setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)//CAPTURE_MODE_MAXIMIZE_QUALITY
+                }
+                .build()
+
+            val cameraSelector = CameraSelector
+                .Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+
+            try {
+                cameraProvider.unbindAll()
+                camera = cameraProvider.bindToLifecycle(this,
+                    cameraSelector,preview,imageCapture)
+                preview?.setSurfaceProvider(pvViewFinder.createSurfaceProvider(camera?.cameraInfo))
+            }catch (ex: java.lang.Exception) {
+                Log.e(TAG,"Use case binding failed", ex)
+            }
+        },
+            ContextCompat.getMainExecutor(this))
+    }
+
+    private fun takePhoto(){
+        val imageCapture = imageCapture ?: return
+
+        val photoFile = File(
+            outputDirectory,
+            SimpleDateFormat(FILENAME_FORMAT, Locale.US)
+                .format(System.currentTimeMillis()) + ".jpg"
+        )
+
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+
+        imageCapture.takePicture(
+            outputOptions, ContextCompat.getMainExecutor(this),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                    val savedUri = Uri.fromFile(photoFile)
+                    cropSelectedImage(savedUri)
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    Log.e(TAG,"Photo capture failed: ${exception.message}",exception)
+                }
+
+            }
+        )
+    }
+
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(
+            baseContext, it) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun getOutputDirectory(): File {
+        val mediaDir = externalMediaDirs.firstOrNull()?.let {
+            File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
+        }
+        return if ( mediaDir != null && mediaDir.exists()) mediaDir else filesDir
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        if(requestCode == REQUEST_CODE_PERMISSIONS){
+            if(allPermissionsGranted()){
+                startCamera()
+            }else {
+                Snackbar.make(cvRootLayout,
+                    "Permissions not granted by the user.", Snackbar.LENGTH_SHORT).show()
+                finish()
+            }
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == cameraRequestCode && resultCode == Activity.RESULT_OK) {
-            cropSelectedImage(Uri.fromFile(File(currentPhotoPath)))
-        } else if (requestCode == UCrop.REQUEST_CROP && resultCode == Activity.RESULT_OK) {
+        if (requestCode == UCrop.REQUEST_CROP && resultCode == Activity.RESULT_OK) {
             data?.let {
                 val uri = UCrop.getOutput(it)
                 cameraUri = uri
                 iivChooseDocument.setImageURI(uri)
-                tvChooseDocument.text = getString(R.string.remove_photo)
-                tvChooseDocument.setTextColor(
-                    ContextCompat.getColor(
-                        this,
-                        R.color.colorAccent
-                    )
-                )
+                tvChooseDocument.apply {
+                    text = getString(R.string.remove_photo)
+                    setTextColor(ContextCompat.getColor(this.context, R.color.colorAccent))
+                }
+                grpImageCapture.makeGone()
+                grpVerifyDocument.makeVisible()
             }
         }
     }
@@ -223,7 +257,7 @@ class MainActivity : AppCompatActivity(), HasAndroidInjector {
 
         croppedImgPath = File.createTempFile(
             randomStringGenerator(), ".jpg",
-            getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            outputDirectory
         ).absolutePath
 
         croppedImgPath?.let {
@@ -235,10 +269,9 @@ class MainActivity : AppCompatActivity(), HasAndroidInjector {
     }
 
     private fun randomStringGenerator(): String {
-        val random = Random()
         val sb = StringBuilder(Constants.sizeOfRandomString)
         for (i in 0 until Constants.sizeOfRandomString)
-            sb.append(Constants.alphaNumericCharacters[random.nextInt(Constants.alphaNumericCharacters.length)])
+            sb.append(Constants.alphaNumericCharacters[Random().nextInt(Constants.alphaNumericCharacters.length)])
         return "min_${sb}"
     }
 
@@ -279,5 +312,13 @@ class MainActivity : AppCompatActivity(), HasAndroidInjector {
 
     override fun androidInjector(): AndroidInjector<Any> {
         return androidInjector
+    }
+
+    companion object{
+        private const val TAG = "CameraXActivity"
+        private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE)
     }
 }

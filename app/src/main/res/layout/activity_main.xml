@@ -95,5 +95,38 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <androidx.camera.view.PreviewView
+        android:id="@+id/pvViewFinder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/ivCaptureImage"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginBottom="32dp"
+        android:src="@drawable/ic_camera_shutter"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/grpImageCapture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:constraint_referenced_ids="pvViewFinder,ivCaptureImage"/>
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/grpVerifyDocument"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:constraint_referenced_ids="iivChooseDocument,tvChooseDocument,tvStepDocumentVerification,btnContinue,ivChooseDocument" />
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
